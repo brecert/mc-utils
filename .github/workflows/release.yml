@@ -1,0 +1,77 @@
+on:
+  push:
+    # Enable when testing release infrastructure on a branch.
+    # branches:
+    # - ag/release
+    tags:
+    - 'v[0-9]+.[0-9]+.[0-9]+'
+
+name: Create Release
+
+jobs:
+  create-builds:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
+        include:
+        - build: linux
+          os: ubuntu-18.04
+          rust: nightly
+          target: x86_64-unknown-linux-musl
+        - build: linux-arm
+          os: ubuntu-18.04
+          rust: nightly
+          target: arm-unknown-linux-gnueabihf
+        - build: macos
+          os: macos-latest
+          rust: nightly
+          target: x86_64-apple-darwin
+        - build: win-msvc
+          os: windows-2019
+          rust: nightly
+          target: x86_64-pc-windows-msvc
+        - build: win-gnu
+          os: windows-2019
+          rust: nightly-x86_64-gnu
+          target: x86_64-pc-windows-gnu
+        - build: win32-msvc
+          os: windows-2019
+          rust: nightly
+          target: i686-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target=${{ matrix.target }}
+      - name: Strip release binary (linux and macos)
+          if: matrix.build == 'linux' || matrix.build == 'macos'
+          run: strip "target/${{ matrix.target }}/release/mc-utils"
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: ['create-builds']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create release
+        uses: meeDamian/github-release@2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: Build of ${{ github.ref }}.
+          files: >
+            release-x86-linux:./target/x86_64-unknown-linux-musl/release/mc-utils
+            release-arm-linux:./target/arm-unknown-linux-gnueabihf/release/mc-utils
+            release-x86-apple:./target/x86_64-apple-darwin/release/mc-utils
+            release-x86-windows-msvc:./target/x86_64-pc-windows-msvc/release/mc-utils
+            release-x86-windows-gnu:./target/x86_64-pc-windows-gnu/release/mc-utils
+            release-i686-windows-msvc:./target/i686-pc-windows-msvc/release/mc-utils
