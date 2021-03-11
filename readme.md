@@ -17,3 +17,18 @@ SUBCOMMANDS:
     skin         utilities for fetching and looking at skin information
     usernames    displays the username history of a user
 ```
+
+# Installation
+Compiled binaries can be downloaded from the [releases](https://github.com/Brecert/mc-utils/releases/)
+
+# Building
+To build mc-utils, you'll need to be using [rust](https://www.rust-lang.org/) v1.48.0 (nightly) or higher
+
+to build:
+```
+$ git clone https://github.com/Brecert/mc-utils
+$ cd mc-utils
+$ cargo build --release
+$ ./target/release/mc-utils --version
+mc-utils 0.1.0
+```
