@@ -28,3 +28,8 @@ craftping = "0.2.1"
 css-color-parser2 = "1.0.1"
 thiserror = "1.0.24"
 
+[package.metadata.nix]
+app = true
+build = true
+nativeBuildInputs = ["pkg-config"]
+runtimeLibs = []
