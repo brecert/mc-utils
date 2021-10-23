@@ -16,7 +16,7 @@ lto = "fat"
 [dependencies]
 structopt = "0.3.21"
 owo-colors = "1.3.0"
-nop-json = "1.0.1"
+nop-json = "2.0"
 minreq = { version = "2.2.1", features = ["https"] }
 chrono = "0.4.19"
 base64 = "0.13.0"
@@ -28,6 +28,3 @@ craftping = "0.2.1"
 css-color-parser2 = "1.0.1"
 thiserror = "1.0.24"
 
-[patch.crates-io.nop-json-derive]
-git = "https://github.com/jeremiah-shaulov/nop-json-derive"
-branch = "master" 

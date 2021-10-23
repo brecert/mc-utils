@@ -1,7 +1,7 @@
 use base64;
 use hex;
 use minreq;
-use nop_json::{DebugToJson, Reader, TryFromJson};
+use nop_json::{DebugToJson, Reader, TryFromJson, ValidateJson};
 use sha1::{Digest, Sha1};
 use thiserror::Error;
 
@@ -25,13 +25,13 @@ pub enum SkinError {
     Reader(#[from] std::io::Error),
 }
 
-#[derive(TryFromJson, Debug)]
+#[derive(TryFromJson, ValidateJson, Debug)]
 struct UserProfile {
     name: String,
     id: String,
 }
 
-#[derive(TryFromJson, Debug)]
+#[derive(TryFromJson, ValidateJson, Debug)]
 pub struct UsernameHistoryEntry {
     pub name: String,
     // todo: rename;
@@ -41,14 +41,14 @@ pub struct UsernameHistoryEntry {
 
 pub type UsernameHistory = Vec<UsernameHistoryEntry>;
 
-#[derive(TryFromJson, Debug)]
+#[derive(TryFromJson, ValidateJson, Debug)]
 pub struct Profile {
     pub id: String,
     pub name: String,
     pub properties: Vec<ProfileProperty>,
 }
 
-#[derive(TryFromJson, Debug)]
+#[derive(TryFromJson, ValidateJson, Debug)]
 pub struct ProfileProperty {
     pub name: String,
     pub value: String,
@@ -64,7 +64,7 @@ impl ProfileProperty {
     }
 }
 
-#[derive(TryFromJson, Debug)]
+#[derive(TryFromJson, ValidateJson, Debug)]
 pub struct TexturesEntry {
     pub timestamp: i64,
     #[json(profileId)]
@@ -74,7 +74,7 @@ pub struct TexturesEntry {
     pub textures: Textures,
 }
 
-#[derive(TryFromJson, DebugToJson)]
+#[derive(Default, TryFromJson, ValidateJson, DebugToJson)]
 pub struct Textures {
     #[json(SKIN)]
     pub skin: SkinData,
@@ -82,17 +82,17 @@ pub struct Textures {
     pub cape: Option<CapeData>,
 }
 
-#[derive(TryFromJson, DebugToJson)]
+#[derive(Default, TryFromJson, ValidateJson, DebugToJson)]
 pub struct SkinData {
     pub url: String,
     pub metadata: Option<SkinMetadata>,
 }
-#[derive(TryFromJson, DebugToJson)]
+#[derive(Default, TryFromJson, ValidateJson, DebugToJson)]
 pub struct CapeData {
     pub url: String,
 }
 
-#[derive(TryFromJson, DebugToJson)]
+#[derive(Default, TryFromJson, ValidateJson, DebugToJson)]
 pub struct SkinMetadata {
     pub model: String,
 }
