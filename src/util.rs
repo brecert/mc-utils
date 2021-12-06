@@ -2,24 +2,26 @@ use craftping::{self, Chat};
 use css_color_parser2::Color as CssColor;
 use owo_colors::{DynColors, OwoColorize, Style};
 
-pub fn minecraft_color_to_hex(color: &str) -> Option<String> {
+use std::borrow::Cow;
+
+pub fn minecraft_color_to_hex(color: &str) -> Option<Cow<str>> {
     match color {
-        "black" => Some(String::from("#000000")),
-        "dark_blue" => Some(String::from("#0000aa")),
-        "dark_green" => Some(String::from("#00aa00")),
-        "dark_aqua" => Some(String::from("#00aaaa")),
-        "dark_red" => Some(String::from("#aa0000")),
-        "dark_purple" => Some(String::from("#aa00aa")),
-        "gold" => Some(String::from("#ffaa00")),
-        "gray" => Some(String::from("#aaaaaa")),
-        "dark_gray" => Some(String::from("#555555")),
-        "blue" => Some(String::from("#5555ff")),
-        "green" => Some(String::from("#55ff55")),
-        "aqua" => Some(String::from("#55ffff")),
-        "red" => Some(String::from("#ff5555")),
-        "light_purple" => Some(String::from("#ff55ff")),
-        "yellow" => Some(String::from("#ffff55")),
-        "white" => Some(String::from("#ffffff")),
+        "black" => Some(Cow::from("#000000")),
+        "dark_blue" => Some(Cow::from("#0000aa")),
+        "dark_green" => Some(Cow::from("#00aa00")),
+        "dark_aqua" => Some(Cow::from("#00aaaa")),
+        "dark_red" => Some(Cow::from("#aa0000")),
+        "dark_purple" => Some(Cow::from("#aa00aa")),
+        "gold" => Some(Cow::from("#ffaa00")),
+        "gray" => Some(Cow::from("#aaaaaa")),
+        "dark_gray" => Some(Cow::from("#555555")),
+        "blue" => Some(Cow::from("#5555ff")),
+        "green" => Some(Cow::from("#55ff55")),
+        "aqua" => Some(Cow::from("#55ffff")),
+        "red" => Some(Cow::from("#ff5555")),
+        "light_purple" => Some(Cow::from("#ff55ff")),
+        "yellow" => Some(Cow::from("#ffff55")),
+        "white" => Some(Cow::from("#ffffff")),
         _ => None,
     }
 }
@@ -43,7 +45,7 @@ pub fn tty_style_chat(chat: &Chat) -> String {
     }
     if let Some(color) = chat.color.clone() {
         let css = minecraft_color_to_hex(&color)
-            .unwrap_or(color)
+            .unwrap_or_else(|| Cow::from(&color))
             .parse::<CssColor>()
             .expect("Unable to parse web color");
 

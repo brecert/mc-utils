@@ -1,19 +1,25 @@
 use chrono::{TimeZone, Utc};
-use craftping;
 use owo_colors::OwoColorize;
+use player::{FindUuid, UsernameHistory};
+use server::ServerPing;
 use structopt::StructOpt;
+
+use std::borrow::Cow;
+
 mod api;
 mod util;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-fn username_or_id(idname: &str, at: Option<i64>) -> String {
-    let timestamp = at.unwrap_or(chrono::Utc::now().timestamp());
-    api::get_id_at(idname, timestamp).unwrap_or(idname.to_string())
+fn username_or_id(idname: &str, at: Option<i64>) -> Cow<str> {
+    let timestamp = at.unwrap_or_else(|| chrono::Utc::now().timestamp());
+    api::get_id_at(idname, timestamp)
+        .map(Cow::from)
+        .unwrap_or(Cow::Borrowed(idname))
 }
 
 fn find_uuid(username: String, at: Option<i64>) -> Result<()> {
-    let timestamp = at.unwrap_or(chrono::Utc::now().timestamp());
+    let timestamp = at.unwrap_or_else(|| chrono::Utc::now().timestamp());
     match api::get_id_at(&username, timestamp) {
         Ok(uuid) => {
             println!("{}", uuid);
@@ -32,7 +38,7 @@ fn find_uuid(username: String, at: Option<i64>) -> Result<()> {
 
 fn username_history(user: String, disable_date: bool, at: Option<i64>) -> Result<()> {
     let id = username_or_id(&user, at);
-    let history = match api::get_username_history(id) {
+    let history = match api::get_username_history(&id) {
         Ok(val) => val,
         Err(_) => {
             println!(
@@ -96,29 +102,29 @@ mod skin {
         },
     }
 
-    fn get_skin_data(user: String) -> Result<api::Textures> {
-        let id = username_or_id(&user, None);
-        let skin = api::get_skin(id)?;
+    fn get_skin_data(user: &str) -> Result<api::Textures> {
+        let id = username_or_id(user, None);
+        let skin = api::get_skin(&id)?;
         let tex = skin.properties[0].textures()?.textures;
         Ok(tex)
     }
 
-    pub fn display_json(user: String) -> Result<()> {
-        let id = username_or_id(&user, None);
-        println!("{:?}", get_skin_data(id)?);
+    pub fn display_json(user: &str) -> Result<()> {
+        let id = username_or_id(user, None);
+        println!("{:?}", get_skin_data(&id)?);
         Ok(())
     }
 
     // todo(bree): figure out java timestamp
-    pub fn display_info(user: String) -> Result<()> {
-        let id = username_or_id(&user, None);
-        let skin = get_skin_data(id)?;
+    pub fn display_info(user: &str) -> Result<()> {
+        let id = username_or_id(user, None);
+        let skin = get_skin_data(&id)?;
         println!(
             "skin_type: {}",
             skin.skin
                 .metadata
-                .map(|data| data.model)
-                .unwrap_or(String::from("classic"))
+                .map(|data| std::borrow::Cow::Owned(data.model))
+                .unwrap_or(std::borrow::Cow::Borrowed("classic"))
         );
         println!("skin_url: {}", skin.skin.url.bright_cyan());
         if let Some(cape) = skin.cape {
@@ -137,10 +143,17 @@ mod server {
     use util::tty_style_chat;
 
     #[derive(StructOpt, Debug)]
+    /// get a minecraft server's response
+    pub struct ServerPing {
+        pub host: String,
+        pub port: Option<u16>,
+    }
+
+    #[derive(StructOpt, Debug)]
     pub enum Opt {
         #[structopt(name = "ping")]
-        /// get a minecraft server's response
-        Ping { host: String, port: Option<u16> },
+        Ping(ServerPing),
+
         #[structopt(name = "blocked")]
         /// checks if a server is blocked by mojang
         ServerBlocked { addr: String },
@@ -148,7 +161,7 @@ mod server {
 
     pub fn ping_server(host: &str, port: u16) -> Result<()> {
         match craftping::sync::ping(host, port) {
-            Err(err) => println!("{}{} {}", "error".bold().red(), ":".bold(), err.to_string()),
+            Err(err) => println!("{}{} {}", "error".bold().red(), ":".bold(), err),
             Ok(res) => {
                 println!(
                     "[{}/{}] {}:{}",
@@ -161,8 +174,8 @@ mod server {
         Ok(())
     }
 
-    pub fn is_server_blocked(addr: String) -> Result<()> {
-        if let Some(pat) = api::find_blocked_pattern(&addr)? {
+    pub fn is_server_blocked(addr: &str) -> Result<()> {
+        if let Some(pat) = api::find_blocked_pattern(addr)? {
             println!(
                 "{} is blocked because of the pattern `{}`",
                 addr.red().bold(),
@@ -176,51 +189,83 @@ mod server {
     }
 }
 
-#[derive(StructOpt, Debug)]
-enum Opt {
-    #[structopt(name = "uuid")]
-    /// gets the uuid of a user
-    FindUuid {
-        /// username or user id
-        user: String,
-        #[structopt(long)]
-        /// return the uuid as it was at the timestamp provided (currently doesn't seemt to do anything)
-        at: Option<i64>,
-    },
-    #[structopt(name = "usernames")]
+mod player {
+    use super::*;
+
+    #[derive(StructOpt, Debug)]
+    #[structopt(name = "history")]
     /// displays the username history of a user
-    UsernameHistory {
+    pub struct UsernameHistory {
         /// username or user id
-        user: String,
+        pub user: String,
+
         #[structopt(long)]
         /// removes the change date from the formatting
-        no_date: bool,
+        pub no_date: bool,
+
         #[structopt(long)]
         /// return the username_history of the user as it was at the timestamp provided (currently doesn't seemt to do anything)
-        at: Option<i64>,
-    },
+        pub at: Option<i64>,
+    }
 
+    #[derive(StructOpt, Debug)]
+    #[structopt(name = "uuid")]
+    /// gets the uuid of a user
+    pub struct FindUuid {
+        /// username or user id
+        pub user: String,
+
+        #[structopt(long)]
+        /// return the uuid as it was at the timestamp provided (currently doesn't seem to do anything)
+        pub at: Option<i64>,
+    }
+
+    #[derive(StructOpt, Debug)]
+    pub enum Opt {
+        FindUuid(FindUuid),
+        UsernameHistory(UsernameHistory),
+    }
+}
+
+#[derive(StructOpt, Debug)]
+enum Opt {
+    /// utilities for fetching and viewing skin information
     #[structopt(name = "skin")]
-    /// utilities for fetching and looking at skin information
     Skin(skin::Opt),
-    #[structopt(name = "server")]
+
     /// utilities for pinging and checking if a server is blocked by mojang
+    #[structopt(name = "server")]
     Server(server::Opt),
+
+    /// utilities for fetching and viewing player information
+    #[structopt(name = "player")]
+    Player(player::Opt),
+
+    /// alias for `server ping`
+    #[structopt(name = "ping", display_order = 1000)]
+    Ping(server::ServerPing),
 }
 
 fn main() -> Result<()> {
     let args = Opt::from_args();
     match args {
-        Opt::UsernameHistory { user, no_date, at } => username_history(user, no_date, at)?,
-        Opt::FindUuid { user, at } => find_uuid(user, at)?,
-        Opt::Skin(skin_opt) => match skin_opt {
-            skin::Opt::FetchSkinData { user } => skin::display_json(user)?,
-            skin::Opt::ShowSkinInfo { user } => skin::display_info(user)?,
+        Opt::Player(opt) => match opt {
+            player::Opt::UsernameHistory(UsernameHistory { user, no_date, at }) => {
+                username_history(user, no_date, at)?
+            }
+            player::Opt::FindUuid(FindUuid { user, at }) => find_uuid(user, at)?,
         },
-        Opt::Server(server_opt) => match server_opt {
-            server::Opt::ServerBlocked { addr } => server::is_server_blocked(addr)?,
-            server::Opt::Ping { host, port } => server::ping_server(&host, port.unwrap_or(25565))?,
+        Opt::Skin(opt) => match opt {
+            skin::Opt::FetchSkinData { user } => skin::display_json(&user)?,
+            skin::Opt::ShowSkinInfo { user } => skin::display_info(&user)?,
         },
+        Opt::Server(opt) => match opt {
+            server::Opt::ServerBlocked { addr } => server::is_server_blocked(&addr)?,
+            server::Opt::Ping(server::ServerPing { host, port }) => {
+                server::ping_server(&host, port.unwrap_or(25565))?
+            }
+        },
+        Opt::Ping(ServerPing { host, port }) => server::ping_server(&host, port.unwrap_or(25565))?,
     };
     Ok(())
 }

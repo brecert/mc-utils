@@ -1,6 +1,3 @@
-use base64;
-use hex;
-use minreq;
 use nop_json::{DebugToJson, Reader, TryFromJson, ValidateJson};
 use sha1::{Digest, Sha1};
 use thiserror::Error;
@@ -9,10 +6,13 @@ use thiserror::Error;
 pub enum ApiError {
     #[error("[{}] API Request failed: {}", .status, .reason)]
     Request { status: i32, reason: String },
+
     #[error("Fetching failed: {}", .0)]
     Fetch(#[from] minreq::Error),
+
     #[error("Unable to parse data: {}", .0)]
     Parse(#[from] std::io::Error),
+
     #[error("{}", .0)]
     Skin(#[from] SkinError),
 }
@@ -21,14 +21,15 @@ pub enum ApiError {
 pub enum SkinError {
     #[error("Error decoding texture data: {}", .0)]
     Decoding(#[from] base64::DecodeError),
+
     #[error("Error reading decoded texture data: {}", .0)]
     Reader(#[from] std::io::Error),
 }
 
 #[derive(TryFromJson, ValidateJson, Debug)]
 struct UserProfile {
-    name: String,
-    id: String,
+    pub name: String,
+    pub id: String,
 }
 
 #[derive(TryFromJson, ValidateJson, Debug)]
@@ -67,10 +68,13 @@ impl ProfileProperty {
 #[derive(TryFromJson, ValidateJson, Debug)]
 pub struct TexturesEntry {
     pub timestamp: i64,
+
     #[json(profileId)]
     pub profile_id: String,
+
     #[json(profileName)]
     pub profile_name: String,
+
     pub textures: Textures,
 }
 
@@ -133,12 +137,12 @@ pub fn get_id_at(username: &str, at: i64) -> Result<String> {
     Ok(profile.id)
 }
 
-pub fn get_username_history(id: String) -> Result<UsernameHistory> {
+pub fn get_username_history(id: &str) -> Result<UsernameHistory> {
     let url = format!("https://api.mojang.com/user/profiles/{}/names", id);
     api_get(url)
 }
 
-pub fn get_skin(id: String) -> Result<Profile> {
+pub fn get_skin(id: &str) -> Result<Profile> {
     let url = format!(
         "https://sessionserver.mojang.com/session/minecraft/profile/{}",
         id
@@ -159,7 +163,7 @@ pub fn find_blocked_pattern(address: &str) -> Result<Option<String>> {
     let address_parts: Vec<&str> = address.split(|b| b == '.').collect();
     let len = address_parts.len();
 
-    let wildcards: Vec<String> = if is_ipv4_address(&address) {
+    let wildcards: Vec<String> = if is_ipv4_address(address) {
         (0..len)
             .map(|i| format!("{}.*", address_parts[..i - 1].join(".")))
             .collect()
@@ -171,10 +175,10 @@ pub fn find_blocked_pattern(address: &str) -> Result<Option<String>> {
 
     let sha_wildcards: Vec<String> = wildcards
         .iter()
-        .map(|addr| hex::encode(Sha1::digest(&addr.as_bytes())))
+        .map(|addr| hex::encode(Sha1::digest(addr.as_bytes())))
         .collect();
 
-    let sha_address = hex::encode(Sha1::digest(&address.as_bytes()));
+    let sha_address = hex::encode(Sha1::digest(address.as_bytes()));
     let blocked_hashes: Vec<_> = res.lines().collect();
 
     let is_blocked = blocked_hashes
