@@ -1,0 +1,31 @@
+> mcu ping <server> [--json]
+> mcu server ping <server> [--json]
+{ version, protocol, max_players, online_players, description, players?, icon? }
+
+> mcu server blocked <server> [--json]
+{ blocked: bool, pattern: ?string }
+
+> mcu player uuid <username> [--json]
+{ uuid: string }	
+
+> mcu player history <user> [--json]
+{ usernames: [{ name: string }, ...{ name: string, time: number }] }
+
+> mcu skin <user> [--json] 
+> mcu player skin <user> [--json]
+{ type: "slim" |  "default", url: string, cape: ?string }
+
+> mcu tellraw <text>
+
+mcu [--no-color] <command>	[--help]
+
+mcu help
+
+mcu server ping <server>		[--json]
+mcu server blocked <server>	[--json]
+
+mcu player uuid <username> 	[--json]
+mcu player skin <user> 		[--json]
+mcu player username <user>		[--json] [--history [at:date] [--limit <u8>]]
+
+mcu tellraw <json>

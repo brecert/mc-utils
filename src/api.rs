@@ -115,7 +115,7 @@ fn fetch<U: Into<minreq::URL>>(url: U) -> Result<String> {
     }
 }
 
-fn api_get<U: Into<minreq::URL>, T: TryFromJson>(url: U) -> Result<T> {
+pub fn api_get<U: Into<minreq::URL>, T: TryFromJson>(url: U) -> Result<T> {
     let res = minreq::get(url).send_lazy().map_err(ApiError::Fetch)?;
     if res.status_code == 200 {
         let bytes = res.map(|b| b.unwrap().0);

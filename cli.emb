@@ -1,0 +1,90 @@
+/// uuid of a user
+type UUID <uuid: string>
+
+/// username of a user
+/// a username must be less than 16 characters and only contain ascii alphanumeric characters and underscores
+type Username <name: string.expect { def <self>:
+  self.len <= 16 && string.all? { def <char>: char === /[a-zA-Z0-9_]/ } 
+}>
+
+/// converts a username or uuid into a uuid 
+impl <Username> into <UUID>
+  def from <user>: uuid {user}
+
+// Utility type that's the same as UUID
+/// either a Username or UUID
+type User <into UUID> 
+
+// A unix timestamp in milliseconds
+type Timestamp <time:ms>
+
+/// gets the profile of user
+/// {user} the user to get the profile from
+def api profile <user: User>
+  | http "api.mojang.com/users/profiles/{user}"
+  | json { id: UUID, username: Username }
+
+/// gets the username history of a user
+def api profile names <user: User>
+  | http "api.mojang.com/user/profiles/{user}/names"
+  | json [ { name: Username }, ..{ name: Username, changedToAt: Timestamp } ]
+  | struct.map_keys { def <key>: string.change_case camel {key} }
+
+/// gets the skin url of a user
+def api profile skin url <user: User>
+  | api session {user}
+  | _.textures.skin.url
+
+/// gets the skin type of a user
+def api profile skin type <user: User>
+  | api session {user}
+  | _.textures.skin.metadata.map { def <meta>: meta.model }
+  | _ || "classic"
+
+/// gets the cape url of a user
+def api profile cape url <user: User>
+  | api session {user}
+  | _.textures.cape.url
+
+/// gets the session information of a profile
+def api session <user: User>
+  | http sessionserver.mojang.com/session/minecraft/profile/{user}
+  | json { id: UUID, name: Username, properties: [ { name: "textures", value: string } ] }
+  | base64 decode _.properties.0.value
+  | json {
+      timestamp: Timestamp,
+      profileId: UUID,
+      profileName: Username,
+      textures: {
+        SKIN: { 
+          url: URL
+          metadata: Maybe { metadata: { model: "slim" } }
+        },
+        CAPE: { url: URL }
+      }
+    }
+  | struct.map_keys {
+      | string.change_case camel
+      | string.change_case lower
+    }
+
+/// gets uuid of a username
+def player uuid <user: Username>
+  | api profile {user}
+  | _.id
+
+/// gets the username of the user
+/// {history} whether or not to include the user's username history
+typ player names <user: User> <history: bool> -> string
+
+def player names <user> <history: {true}>
+  | api profile names {user}
+  | _.[-1].name
+
+def player names <user> <history: {false}>
+  [ first, ..names ] = api profile names {user}
+  print "initial: {first.name}"
+  print "current: {names.[-1].name}"
+  print "changed: {names.len} times"
+  names.chunk_every count: 2, step: 1
+  | def [prev, curr]: print "[{curr.changed_to_at}] Name changed from {prev.name} to {curr.name}"
