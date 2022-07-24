@@ -21,7 +21,6 @@ jobs:
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-musleabihf
           - arm-unknown-linux-musleabihf
-          - mips-unknown-linux-musl
           - x86_64-pc-windows-msvc
           - aarch64-pc-windows-msvc
           - x86_64-apple-darwin
@@ -52,13 +51,6 @@ jobs:
           - os: ubuntu-latest
             target: arm-unknown-linux-musleabihf
             release_name: linux-arm
-            cross: true
-            strip: false
-            compress: true
-
-          - os: ubuntu-latest
-            target: mips-unknown-linux-musl
-            release_name: linux-mips
             cross: true
             strip: false
             compress: true
