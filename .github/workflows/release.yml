@@ -101,7 +101,7 @@ jobs:
             compress: false
     env:
       artifact: ./target/${{ matrix.target }}/release/mc-utils${{ matrix.ext }}
-      release_name: mc-utils-$tag-${{ matrix.release_name }}${{ matrix.ext }}
+      release_name: mc-utils-${{ github.ref_name }}-${{ matrix.release_name }}${{ matrix.ext }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
