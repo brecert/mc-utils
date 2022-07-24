@@ -2,7 +2,7 @@
 > cli utility functions for minecraft
 
 ```
-mc-utils 0.2.0
+mc-utils 0.2.1
 
 USAGE:
     mc-utils.exe <SUBCOMMAND>
@@ -12,11 +12,13 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    help      Prints this message or the help of the given subcommand(s)
-    player    utilities for fetching and viewing player information
-    server    utilities for pinging and checking if a server is blocked by mojang
-    skin      utilities for fetching and viewing skin information
-    ping      alias for `server ping`
+    help         Prints this message or the help of the given subcommand(s)
+    player       utilities for fetching and viewing player information
+    server       utilities for pinging and checking if a server is blocked by mojang
+    skin         utilities for fetching and viewing skin information
+    usernames    alias for `player usernames` gets the username history of a user
+    uuid         alias for `player uuid` gets the UUID of a user
+    ping         alias for `server ping` get a minecraft server's response
 ```
 
 # Installation
@@ -31,5 +33,5 @@ $ git clone https://github.com/Brecert/mc-utils
 $ cd mc-utils
 $ cargo build --release
 $ ./target/release/mc-utils --version
-mc-utils 0.2.0
+mc-utils 0.2.1
 ```

@@ -48,9 +48,9 @@ def api profile cape url <user: User>
 
 /// gets the session information of a profile
 def api session <user: User>
-  | http sessionserver.mojang.com/session/minecraft/profile/{user}
+  | http "sessionserver.mojang.com/session/minecraft/profile/{user}"
   | json { id: UUID, name: Username, properties: [ { name: "textures", value: string } ] }
-  | base64 decode _.properties.0.value
+  | base64 decode _.properties.[0].value
   | json {
       timestamp: Timestamp,
       profileId: UUID,
@@ -75,7 +75,7 @@ def player uuid <user: Username>
 
 /// gets the username of the user
 /// {history} whether or not to include the user's username history
-typ player names <user: User> <history: bool> -> string
+type player names <user: User> <history: bool> -> string
 
 def player names <user> <history: {true}>
   | api profile names {user}

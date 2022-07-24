@@ -21,11 +21,11 @@ mcu [--no-color] <command>	[--help]
 
 mcu help
 
-mcu server ping <server>		[--json]
+mcu server ping <server>    [--json]
 mcu server blocked <server>	[--json]
 
 mcu player uuid <username> 	[--json]
 mcu player skin <user> 		[--json]
-mcu player username <user>		[--json] [--history [at:date] [--limit <u8>]]
+mcu player username <user>	[--json] [--history [at:date] [--limit <u8>]]
 
 mcu tellraw <json>

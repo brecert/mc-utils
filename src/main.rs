@@ -1,6 +1,6 @@
 use chrono::{TimeZone, Utc};
 use owo_colors::OwoColorize;
-use player::{FindUuid, UsernameHistory};
+use player::UsernameHistory;
 use server::ServerPing;
 use structopt::StructOpt;
 
@@ -193,7 +193,6 @@ mod player {
     use super::*;
 
     #[derive(StructOpt, Debug)]
-    #[structopt(name = "history")]
     /// displays the username history of a user
     pub struct UsernameHistory {
         /// username or user id
@@ -202,28 +201,14 @@ mod player {
         #[structopt(long)]
         /// removes the change date from the formatting
         pub no_date: bool,
-
-        #[structopt(long)]
-        /// return the username_history of the user as it was at the timestamp provided (currently doesn't seemt to do anything)
-        pub at: Option<i64>,
-    }
-
-    #[derive(StructOpt, Debug)]
-    #[structopt(name = "uuid")]
-    /// gets the uuid of a user
-    pub struct FindUuid {
-        /// username or user id
-        pub user: String,
-
-        #[structopt(long)]
-        /// return the uuid as it was at the timestamp provided (currently doesn't seem to do anything)
-        pub at: Option<i64>,
     }
 
     #[derive(StructOpt, Debug)]
     pub enum Opt {
-        FindUuid(FindUuid),
+        #[structopt(name = "usernames")]
         UsernameHistory(UsernameHistory),
+        /// gets the UUID of a user
+        UUID { user: String },
     }
 }
 
@@ -242,18 +227,29 @@ enum Opt {
     Player(player::Opt),
 
     /// alias for `server ping`
+    /// get a minecraft server's response
     #[structopt(name = "ping", display_order = 1000)]
     Ping(server::ServerPing),
+
+    /// alias for `player uuid`
+    /// gets the UUID of a user
+    #[structopt(name = "uuid")]
+    UUID { user: String },
+
+    /// alias for `player usernames`
+    /// gets the username history of a user
+    #[structopt(name = "usernames")]
+    Usernames(player::UsernameHistory),
 }
 
 fn main() -> Result<()> {
     let args = Opt::from_args();
     match args {
         Opt::Player(opt) => match opt {
-            player::Opt::UsernameHistory(UsernameHistory { user, no_date, at }) => {
-                username_history(user, no_date, at)?
+            player::Opt::UsernameHistory(UsernameHistory { user, no_date }) => {
+                username_history(user, no_date, None)?
             }
-            player::Opt::FindUuid(FindUuid { user, at }) => find_uuid(user, at)?,
+            player::Opt::UUID { user } => find_uuid(user, None)?,
         },
         Opt::Skin(opt) => match opt {
             skin::Opt::FetchSkinData { user } => skin::display_json(&user)?,
@@ -265,6 +261,10 @@ fn main() -> Result<()> {
                 server::ping_server(&host, port.unwrap_or(25565))?
             }
         },
+        Opt::UUID { user } => find_uuid(user, None)?,
+        Opt::Usernames(player::UsernameHistory { user, no_date }) => {
+            username_history(user, no_date, None)?
+        }
         Opt::Ping(ServerPing { host, port }) => server::ping_server(&host, port.unwrap_or(25565))?,
     };
     Ok(())
