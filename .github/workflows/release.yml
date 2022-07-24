@@ -105,7 +105,7 @@ jobs:
             strip: false
             compress: false
     env:
-      output_file: target/${{ matrix.target }}/release/mc-utils
+      output_file: ./target/${{ matrix.target }}/release/mc-utils
       release_name: mc-utils-$tag-${{ matrix.release_name }}
     steps:
       - uses: actions/checkout@v2
