@@ -57,24 +57,27 @@ jobs:
 
           - os: windows-latest
             target: i686-pc-windows-msvc
-            release_name: windows-i686.exe
+            release_name: windows-i686
             cross: true
             strip: true
             compress: false
+            ext: .exe
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            release_name: windows-x86_64.exe
+            release_name: windows-x86_64
             cross: false
             strip: true
             compress: true
+            ext: .exe
 
           - os: windows-latest
             target: aarch64-pc-windows-msvc
-            release_name: windows-aarch64.exe
+            release_name: windows-aarch64
             cross: true
             strip: true
             compress: false
+            ext: .exe
 
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -97,8 +100,8 @@ jobs:
             strip: false
             compress: false
     env:
-      output_file: ./target/${{ matrix.target }}/release/mc-utils
-      release_name: mc-utils-$tag-${{ matrix.release_name }}
+      artifact: ./target/${{ matrix.target }}/release/mc-utils${{ matrix.ext }}
+      release_name: mc-utils-$tag-${{ matrix.release_name }}${{ matrix.ext }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -120,13 +123,13 @@ jobs:
       - name: Compress binaries
         uses: svenstaro/upx-action@v2
         with:
-          file: ${{ env.output_file }}
+          file: ${{ env.artifact }}
           args: --lzma
           strip: ${{ matrix.strip }}
         if: ${{ matrix.compress }}
 
       - name: Rename binary
-        run: mv "${{ env.output_file }}" "${{ env.release_name }}"
+        run: mv "${{ env.artifact }}" "${{ env.release_name }}"
 
       - name: Release
         uses: softprops/action-gh-release@v1
