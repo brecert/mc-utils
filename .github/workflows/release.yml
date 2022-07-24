@@ -4,7 +4,8 @@ on:
     # branches:
     # - ag/release
     tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+'
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
 
 name: Create Release
 
@@ -12,6 +13,7 @@ jobs:
   publish:
     name: ${{ matrix.os }} for ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       matrix:
         target:
@@ -19,45 +21,92 @@ jobs:
           - aarch64-unknown-linux-musl
           - armv7-unknown-linux-musleabihf
           - arm-unknown-linux-musleabihf
+          - mips-unknown-linux-musl
           - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
           - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-unknown-freebsd
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            artifact_name: target/x86_64-unknown-linux-musl/release/mc-utils
             release_name: linux-x86_64
             cross: true
             strip: true
+            compress: true
+
           - os: ubuntu-latest
             target: aarch64-unknown-linux-musl
-            artifact_name: target/aarch64-unknown-linux-musl/release/mc-utils
             release_name: linux-aarch64
             cross: true
             strip: false
+            compress: true
+
           - os: ubuntu-latest
             target: armv7-unknown-linux-musleabihf
-            artifact_name: target/armv7-unknown-linux-musleabihf/release/mc-utils
             release_name: linux-armv7
             cross: true
             strip: false
+            compress: true
+
           - os: ubuntu-latest
             target: arm-unknown-linux-musleabihf
-            artifact_name: target/arm-unknown-linux-musleabihf/release/mc-utils
             release_name: linux-arm
             cross: true
             strip: false
+            compress: true
+
+          - os: ubuntu-latest
+            target: mips-unknown-linux-musl
+            release_name: linux-mips
+            cross: true
+            strip: false
+            compress: true
+
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            release_name: windows-i686.exe
+            cross: true
+            strip: true
+            compress: false
+
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: target/x86_64-pc-windows-msvc/release/mc-utils.exe
             release_name: windows-x86_64.exe
             cross: false
             strip: true
+            compress: true
+
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            release_name: windows-aarch64.exe
+            cross: true
+            strip: true
+            compress: false
+
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: target/x86_64-apple-darwin/release/mc-utils
             release_name: macos-x86_64
             cross: false
             strip: true
+            compress: true
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            release_name: macos-aarch64
+            cross: false
+            strip: true
+            compress: true
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-freebsd
+            release_name: freebsd-x86_64
+            cross: true
+            strip: false
+            compress: false
+    env:
+      output_file: target/${{ matrix.target }}/release/mc-utils
+      release_name: mc-utils-$tag-${{ matrix.release_name }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -65,34 +114,31 @@ jobs:
           toolchain: nightly
           target: ${{ matrix.target }}
           override: true
-          
+
       - run: sudo apt install musl-tools
         if: matrix.os == 'ubuntu-latest'
-        
+
       - name: cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: --release --locked --target=${{ matrix.target }}
           use-cross: ${{ matrix.cross }}
+
       - name: Compress binaries
         uses: svenstaro/upx-action@v2
         with:
-          file: ${{ matrix.artifact_name }}
-          args: --best --lzma
+          file: ${{ env.output_file }}
+          args: --lzma
           strip: ${{ matrix.strip }}
+        if: ${{ matrix.compress }}
 
-      - name: Get tag name
-        id: tag_name
-        run: |
-          echo ::set-output name=current_version::${GITHUB_REF#refs/tags/v}
-        shell: bash
+      - name: Rename binary
+        run: mv "${{ env.output_file }}" "${{ env.release_name }}"
 
       - name: Release
-        uses: svenstaro/upload-release-action@v2
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ matrix.artifact_name }}
-          tag: ${{ github.ref }}
-          asset_name: mc-utils-$tag-${{ matrix.release_name }}
-          body: ${{ steps.changelog_reader.outputs.log_entry }}
+          files: ${{ env.release_name }}
+          generate_release_notes: true
